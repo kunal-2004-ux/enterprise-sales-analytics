@@ -1,0 +1,13 @@
+# Data Files (Too large for GitHub)
+data/*.csv
+data/*.ndjson
+
+# Application Artifacts
+*.log
+.env
+.DS_Store
+
+# Dependencies
+**/node_modules/
+dist/
+coverage/
