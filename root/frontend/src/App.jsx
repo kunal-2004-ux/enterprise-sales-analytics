@@ -1,17 +1,20 @@
 import React from 'react';
-
-// Layout:
-// - FilterBar
-// - SummaryCards
-// - Table
-// - Pagination
+import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import DashboardPage from './routes/DashboardPage';
+import './styles/main.css';
 
 function App() {
     return (
-        <div>
-            <h1>Frontend App</h1>
-            {/* TODO: specific components */}
-        </div>
+        <BrowserRouter>
+            <div className="app-container">
+                <header>
+                    <h1>Sales Intelligence Dashboard</h1>
+                </header>
+                <Routes>
+                    <Route path="/" element={<DashboardPage />} />
+                </Routes>
+            </div>
+        </BrowserRouter>
     );
 }
 
