@@ -23,5 +23,5 @@ Offset-based pagination is used to support numbered navigation controls. The bac
 
 ## 7. Setup Instructions
 1. **Database:** Ensure PostgreSQL is running.
-2. **Backend:** Navigate to `/backend`, run `npm install` then `npm start`.
-3. **Frontend:** Navigate to `/frontend`, run `npm install` then `npm run dev`.
+2. **Backend:** Navigate to `root/backend`, run `npm install` then `npm start`.
+3. **Frontend:** Navigate to `root/frontend`, run `npm install` then `npm run dev`.
