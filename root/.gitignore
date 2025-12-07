@@ -1,6 +1,9 @@
 # Data Files (Too large for GitHub)
 data/*.csv
+!data/sample.csv
 data/*.ndjson
+!data/sample.ndjson
+!data/sample_ready.csv
 
 # Application Artifacts
 *.log

@@ -1,101 +1,124 @@
-import { useState, useEffect, useCallback } from 'react';
+/**
+ * useSalesData.js
+ * Custom hook to manage sales data state, pagination, and filtering.
+ */
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { fetchSales } from '../services/salesService';
 
-export function useSalesData() {
+export default function useSalesData() {
     const [data, setData] = useState([]);
     const [meta, setMeta] = useState({});
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
 
-    // State for filters and pagination
+    // Active query parameters (filters, sort, pagination)
     const [params, setParams] = useState({
-        limit: 10,
+        limit: 10, // Dense table can show more rows
         sort_by: 'date',
-        sort_dir: 'desc',
-        // ...other filters can be merged here
+        sort_dir: 'desc'
     });
 
+    // Stack to track cursor history for "Previous" navigation
     const [cursorStack, setCursorStack] = useState([]);
 
-    const loadData = useCallback(async (queryParams) => {
+    const loadData = useCallback(async (currentParams) => {
         setLoading(true);
         setError(null);
         try {
-            const result = await fetchSales(queryParams);
+            const result = await fetchSales(currentParams);
             setData(result.data || []);
             setMeta(result.meta || {});
         } catch (err) {
-            console.error(err);
-            setError(err.message);
+            console.error('Data load error:', err);
+            setError(err.message || 'Failed to load data');
             setData([]);
+            setMeta({});
         } finally {
             setLoading(false);
         }
     }, []);
 
-    // Effect to refetch when params change
+    // Initial load and updates when params change
     useEffect(() => {
         loadData(params);
     }, [params, loadData]);
 
+    /**
+     * Applies new filters or sort orders.
+     * Resets pagination (cursor stack) because the result set changes.
+     */
     const updateFilters = (newFilters) => {
-        setCursorStack([]); // Reset stack on filter change
+        setCursorStack([]); // Reset history
         setParams(prev => {
-            const merged = { ...prev, ...newFilters };
-            // reset pagination
-            delete merged.cursor_date;
-            delete merged.cursor_id;
-            delete merged.page;
-            return merged;
+            // Remove existing pagination keys when filtering
+            const { cursor_date, cursor_id, page, ...rest } = prev;
+            return {
+                ...rest,
+                ...newFilters
+            };
         });
     };
 
+    /**
+     * Resets all filters to defaults.
+     */
+    const resetFilters = () => {
+        setCursorStack([]);
+        setParams({
+            limit: 10,
+            sort_by: 'date',
+            sort_dir: 'desc'
+        });
+    };
+
+    /**
+     * Keyset Pagination: Go to Next Page
+     * Uses the 'cursor' from the current metadata.
+     */
     const goNextCursor = () => {
         if (meta && meta.cursor) {
-            // Push current cursor state to stack BEFORE moving, actually we need the cursor that GOT us here?
-            // No, we store the cursor we are ABOUT to use to go back?
-            // Simpler: store the *current* params cursor config to the stack.
-            // But wait, the first page has NO cursor params.
-            // So pushing { cursor_date: params.cursor_date, cursor_id: params.cursor_id } is correct.
-
-            setCursorStack(prev => [...prev, {
+            // Push current cursor params (or lack thereof) to stack before moving
+            const currentCursorState = {
                 cursor_date: params.cursor_date,
                 cursor_id: params.cursor_id
-            }]);
+            };
+            setCursorStack(prev => [...prev, currentCursorState]);
 
             setParams(prev => ({
                 ...prev,
                 cursor_date: meta.cursor.last_date,
                 cursor_id: meta.cursor.last_id,
-                page: undefined
+                page: undefined // Ensure we are in cursor mode
             }));
         }
     };
 
+    /**
+     * Keyset Pagination: Go to Previous Page
+     * Pops from cursor stack.
+     */
     const goPrevCursor = () => {
         setCursorStack(prev => {
             const newStack = [...prev];
-            if (newStack.length === 0) return prev; // Should not happen if button disabled
+            if (newStack.length === 0) return prev;
 
-            const lastParams = newStack.pop(); // Get the params of the previous page
-
-            setParams(p => {
-                const next = { ...p, page: undefined };
-                if (lastParams.cursor_date === undefined) {
-                    delete next.cursor_date;
-                    delete next.cursor_id;
-                } else {
-                    next.cursor_date = lastParams.cursor_date;
-                    next.cursor_id = lastParams.cursor_id;
-                }
-                return next;
-            });
-
+            const prevCursorState = newStack.pop();
+            setParams(p => ({
+                ...p,
+                cursor_date: prevCursorState.cursor_date,
+                cursor_id: prevCursorState.cursor_id,
+                page: undefined
+            }));
             return newStack;
         });
     };
 
+    /**
+     * Offset Pagination: Go to specific page
+     * (Fallback if keyset not used)
+     */
     const goPage = (pageNum) => {
+        setCursorStack([]); // Switching to offset mode clears cursor history
         setParams(prev => ({
             ...prev,
             page: pageNum,
@@ -106,14 +129,14 @@ export function useSalesData() {
 
     return {
         data,
-        meta: { ...meta, prevExists: cursorStack.length > 0 }, // expose if prev exists
+        meta: { ...meta, prevExists: cursorStack.length > 0 },
         loading,
         error,
         params,
-        updateFilters,
+        updateFilters, // Use this for Apply logic
+        resetFilters,
         goNextCursor,
         goPrevCursor,
-        goPage,
-        cursorStack
+        goPage
     };
 }

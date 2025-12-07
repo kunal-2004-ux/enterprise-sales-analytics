@@ -23,8 +23,11 @@ export default function FiltersPanel({ onFiltersChanged }) {
         date_to: ''
     });
 
+    const [loadingOptions, setLoadingOptions] = useState(false);
+
     useEffect(() => {
         let mounted = true;
+        setLoadingOptions(true);
         fetchFilters()
             .then(res => {
                 if (!mounted) return;
@@ -38,7 +41,12 @@ export default function FiltersPanel({ onFiltersChanged }) {
             })
             .catch(err => {
                 console.error('Failed to load filters', err);
+                // keep options empty on failure
+            })
+            .finally(() => {
+                if (mounted) setLoadingOptions(false);
             });
+
         return () => {
             mounted = false;
             if (debounceTimer.current) clearTimeout(debounceTimer.current);
@@ -47,14 +55,16 @@ export default function FiltersPanel({ onFiltersChanged }) {
 
     const handleChange = (field, value) => {
         if (field === 'q') {
+            // Debounce search input and use a snapshot of filters to avoid stale closure
             if (debounceTimer.current) clearTimeout(debounceTimer.current);
-            const newData = { ...localFilters, q: value }; // snapshot
+            const newData = { ...localFilters, q: value };
             setLocalFilters(newData);
             debounceTimer.current = setTimeout(() => {
                 onFiltersChanged(newData);
             }, 300);
             return;
         }
+
         const newData = { ...localFilters, [field]: value };
         setLocalFilters(newData);
         onFiltersChanged(newData);
@@ -68,7 +78,10 @@ export default function FiltersPanel({ onFiltersChanged }) {
     };
 
     const handleClear = () => {
-        if (debounceTimer.current) clearTimeout(debounceTimer.current);
+        if (debounceTimer.current) {
+            clearTimeout(debounceTimer.current);
+            debounceTimer.current = null;
+        }
         const reset = { q: '', region: '', gender: '', category: '', payment: '', tags: [], date_from: '', date_to: '' };
         setLocalFilters(reset);
         onFiltersChanged(reset);
@@ -140,22 +153,29 @@ export default function FiltersPanel({ onFiltersChanged }) {
             <div className="filter-group">
                 <label>Tags</label>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
-                    {options.tags.map(tag => (
-                        <span
-                            key={tag}
-                            onClick={() => handleTagToggle(tag)}
-                            style={{
-                                padding: '4px 8px',
-                                borderRadius: '12px',
-                                fontSize: '0.8rem',
-                                cursor: 'pointer',
-                                background: localFilters.tags.includes(tag) ? '#2563eb' : '#e5e7eb',
-                                color: localFilters.tags.includes(tag) ? 'white' : 'black'
-                            }}
-                        >
-                            {tag}
-                        </span>
-                    ))}
+                    {loadingOptions ? (
+                        <div style={{ color: '#6b7280' }}>Loading tags...</div>
+                    ) : (
+                        options.tags.map(tag => (
+                            <span
+                                key={tag}
+                                onClick={() => handleTagToggle(tag)}
+                                role="button"
+                                tabIndex={0}
+                                onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') handleTagToggle(tag); }}
+                                style={{
+                                    padding: '4px 8px',
+                                    borderRadius: '12px',
+                                    fontSize: '0.8rem',
+                                    cursor: 'pointer',
+                                    background: localFilters.tags.includes(tag) ? '#2563eb' : '#e5e7eb',
+                                    color: localFilters.tags.includes(tag) ? 'white' : 'black'
+                                }}
+                            >
+                                {tag}
+                            </span>
+                        ))
+                    )}
                 </div>
             </div>
 

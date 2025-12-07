@@ -1,61 +1,57 @@
-import React, { useMemo } from 'react';
-import { useSalesData } from '../hooks/useSalesData';
-import FiltersPanel from '../components/FiltersPanel';
-import SummaryCards from '../components/SummaryCards';
-import DataTable from '../components/DataTable';
-import PaginationControls from '../components/PaginationControls';
+import React from 'react';
+import useSalesData from '../hooks/useSalesData';
+import FilterToolbar from '../components/FilterToolbar';
+import MetricWidgets from '../components/MetricWidgets';
+import DenseDataTable from '../components/DenseDataTable';
+import PaginationFooter from '../components/PaginationFooter';
 
 export default function DashboardPage() {
-    const { data, meta, loading, error, params, updateFilters, goNextCursor, goPrevCursor, goPage } = useSalesData();
-
-    const handleSort = (column, dir) => {
-        updateFilters({ sort_by: column, sort_dir: dir });
-    };
-
-    // Derive stats from current data logic 
-    const stats = useMemo(() => {
-        if (!data || data.length === 0) return {};
-        // calculate stats from current page data
-        const totalSales = data.reduce((sum, row) => sum + parseFloat(row.final_amount || 0), 0);
-        const totalOrders = data.length;
-        const avgOrderValue = totalOrders ? totalSales / totalOrders : 0;
-        const distinctCustomers = new Set(data.map(r => r.customer_name || (r.customer && r.customer.name))).size;
-
-        return {
-            totalSales,
-            totalOrders: meta.total_items || totalOrders,
-            avgOrderValue,
-            distinctCustomers
-        };
-    }, [data, meta]);
+    const {
+        data, meta, loading, error, params,
+        updateFilters, resetFilters, goNextCursor, goPrevCursor
+    } = useSalesData();
 
     return (
-        <div className="dashboard-layout">
-            {/* Left Column */}
-            <aside>
-                <FiltersPanel onFiltersChanged={(filters) => updateFilters(filters)} />
-            </aside>
+        <div className="dashboard-container">
+            {/* Top Header */}
+            <header className="app-header">
+                <div className="app-branding">
+                    <div className="app-logo">SalesAI</div>
+                    <h1 className="app-title">Sales Management System</h1>
+                </div>
+                <div className="header-actions">
+                    {/* Placeholder for user profile or settings */}
+                </div>
+            </header>
 
-            {/* Right Column */}
-            <main>
-                {error && <div style={{ marginBottom: 16, color: 'red', fontWeight: 'bold' }}>Error: {error}</div>}
+            {/* Main Content Area */}
+            <main className="main-content">
 
-                <SummaryCards stats={stats} />
+                {/* 1. Filter Toolbar */}
+                <section className="toolbar-section">
+                    <FilterToolbar onApply={updateFilters} onReset={resetFilters} />
+                </section>
 
-                <DataTable
-                    data={data}
-                    loading={loading}
-                    onSort={handleSort}
-                    currentSort={params.sort_by}
-                    sortDir={params.sort_dir}
-                />
+                {/* 2. Metrics */}
+                <section className="metrics-section">
+                    <MetricWidgets data={data} meta={meta} />
+                </section>
 
-                <PaginationControls
-                    meta={meta}
-                    onNextCursor={goNextCursor}
-                    onPrevCursor={goPrevCursor}
-                    onPageChange={goPage}
-                />
+                {/* 3. Data Table */}
+                <section className="table-section">
+                    {error && <div className="error-banner">{error}</div>}
+
+                    <div className="table-wrapper">
+                        <DenseDataTable data={data} loading={loading} />
+                    </div>
+
+                    {/* 4. Footer */}
+                    <PaginationFooter
+                        meta={meta}
+                        onNext={goNextCursor}
+                        onPrev={goPrevCursor}
+                    />
+                </section>
             </main>
         </div>
     );
