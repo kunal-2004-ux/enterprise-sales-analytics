@@ -15,7 +15,8 @@ export default function useSalesData() {
     const [params, setParams] = useState({
         limit: 10, // Dense table can show more rows
         sort_by: 'date',
-        sort_dir: 'desc'
+        sort_dir: 'desc',
+        page: 1 // Default to offset pagination for numbered UI
     });
 
     // Stack to track cursor history for "Previous" navigation

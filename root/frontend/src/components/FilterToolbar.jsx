@@ -14,6 +14,7 @@ export default function FilterToolbar({ onApply, onReset }) {
     const [options, setOptions] = useState({
         region: [], gender: [], category: [], payment: [], tags: [] // ensure 'tags' exists
     });
+    const [dateMode, setDateMode] = useState('all');
 
     // Local filter state (draft)
     const [filters, setFilters] = useState({
@@ -24,6 +25,9 @@ export default function FilterToolbar({ onApply, onReset }) {
         category: '',
         payment: '',
         tags: '',     // single selected tag from dropdown
+        date_from: '',
+        date_to: '',
+        specific_date: '',
         sort_by: 'date',
         sort_dir: 'desc'
     });
@@ -74,15 +78,18 @@ export default function FilterToolbar({ onApply, onReset }) {
         }
 
         delete payload.age_range; // don't send internal range string
+        delete payload.specific_date; // internal UI state only
         onApply(payload);
     };
 
     const handleReset = () => {
         const resetState = {
             q: '', region: '', gender: '', age_range: '', category: '', payment: '', tags: '',
+            date_from: '', date_to: '', specific_date: '',
             sort_by: 'date', sort_dir: 'desc'
         };
         setFilters(resetState);
+        setDateMode('all');
         onReset();
     };
 
@@ -152,6 +159,73 @@ export default function FilterToolbar({ onApply, onReset }) {
                     <option value="">Payment Method</option>
                     {options.payment?.map(p => <option key={p} value={p}>{p}</option>)}
                 </select>
+
+                {/* Date Range Inputs */}
+                {/* Date Filter Section (Vertical Stack) */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', alignItems: 'flex-start' }}>
+                    <select
+                        value={dateMode}
+                        onChange={e => {
+                            const mode = e.target.value;
+                            setDateMode(mode);
+                            if (mode === 'all') {
+                                setFilters(prev => ({ ...prev, date_from: '', date_to: '', specific_date: '' }));
+                            } else if (mode === 'specific') {
+                                setFilters(prev => ({ ...prev, date_from: '', date_to: '', specific_date: '' }));
+                            } else {
+                                setFilters(prev => ({ ...prev, specific_date: '' }));
+                            }
+                        }}
+                        style={{ fontWeight: 500, width: '100%' }}
+                    >
+                        <option value="all">Any Date</option>
+                        <option value="specific">Specific Date</option>
+                        <option value="range">Date Range</option>
+                    </select>
+
+                    {/* Conditional Inputs */}
+                    {dateMode === 'specific' && (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.85rem' }}>
+                            <span>Date:</span>
+                            <input
+                                type="date"
+                                value={filters.specific_date || ''}
+                                onChange={e => {
+                                    const val = e.target.value;
+                                    setFilters(prev => ({
+                                        ...prev,
+                                        specific_date: val,
+                                        date_from: val,
+                                        date_to: val
+                                    }));
+                                }}
+                                aria-label="Select Date"
+                                style={{ padding: '6px', border: '1px solid #ccc', borderRadius: '4px' }}
+                            />
+                        </div>
+                    )}
+
+                    {dateMode === 'range' && (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.85rem' }}>
+                            <span>From:</span>
+                            <input
+                                type="date"
+                                value={filters.date_from || ''}
+                                onChange={e => handleChange('date_from', e.target.value)}
+                                aria-label="Start Date"
+                                style={{ padding: '6px', border: '1px solid #ccc', borderRadius: '4px' }}
+                            />
+                            <span>To:</span>
+                            <input
+                                type="date"
+                                value={filters.date_to || ''}
+                                onChange={e => handleChange('date_to', e.target.value)}
+                                aria-label="End Date"
+                                style={{ padding: '6px', border: '1px solid #ccc', borderRadius: '4px' }}
+                            />
+                        </div>
+                    )}
+                </div>
             </div>
 
             {/* Center: Search (Optional if space permits, otherwise move right) */}
@@ -172,8 +246,14 @@ export default function FilterToolbar({ onApply, onReset }) {
                     value={`${filters.sort_by}-${filters.sort_dir}`}
                     onChange={e => {
                         const [by, dir] = e.target.value.split('-');
-                        handleChange('sort_by', by);
-                        handleChange('sort_dir', dir);
+                        const newFilters = { ...filters, sort_by: by, sort_dir: dir };
+                        setFilters(newFilters);
+                        // Auto-apply for sort
+                        const payload = { ...newFilters };
+                        if (payload.age_range) delete payload.age_range; // Cleanup like handleApply
+                        if (payload.tags) payload.tags = [payload.tags];
+                        else payload.tags = [];
+                        onApply(payload);
                     }}
                     aria-label="Sort By"
                     className="sort-select"
@@ -182,8 +262,10 @@ export default function FilterToolbar({ onApply, onReset }) {
                     <option value="date-asc">Sort by: Date (Oldest)</option>
                     <option value="customer_name-asc">Sort by: Customer Name (A-Z)</option>
                     <option value="customer_name-desc">Sort by: Customer Name (Z-A)</option>
-                    <option value="final_amount-desc">Sort by: Amount (High-Low)</option>
-                    <option value="final_amount-asc">Sort by: Amount (Low-High)</option>
+                    <option value="total_amount-desc">Sort by: Amount (High-Low)</option>
+                    <option value="total_amount-asc">Sort by: Amount (Low-High)</option>
+                    <option value="quantity-desc">Sort by: Quantity (High-Low)</option>
+                    <option value="quantity-asc">Sort by: Quantity (Low-High)</option>
                 </select>
 
                 <button className="btn-primary" onClick={handleApply}>Apply</button>

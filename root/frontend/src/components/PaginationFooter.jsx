@@ -1,39 +1,17 @@
 import React from 'react';
+import PaginationControls from './PaginationControls';
 
 /**
  * PaginationFooter.jsx
  * Sticky footer for navigation controls.
  */
-export default function PaginationFooter({ meta, onNext, onPrev }) {
-    const { prevExists, cursor, limit = 20 } = meta;
-    const hasNext = !!cursor;
-
+export default function PaginationFooter({ meta, onPageChange }) {
     return (
         <div className="pagination-footer">
-            <span className="pagination-info">
-                {/* Simplified Showing Text */}
-                Showing results per page: {limit}
-            </span>
-
-            <div className="pagination-actions">
-                <button
-                    className="btn-page"
-                    onClick={onPrev}
-                    disabled={!prevExists}
-                    aria-label="Previous Page"
-                >
-                    &larr; Prev
-                </button>
-                <div className="divider-vertical" />
-                <button
-                    className="btn-page"
-                    onClick={onNext}
-                    disabled={!hasNext}
-                    aria-label="Next Page"
-                >
-                    Next &rarr;
-                </button>
-            </div>
+            <PaginationControls
+                meta={meta}
+                onPageChange={onPageChange}
+            />
         </div>
     );
 }
