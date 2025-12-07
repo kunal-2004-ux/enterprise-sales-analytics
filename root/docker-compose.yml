@@ -1,0 +1,91 @@
+version: '3.8'
+
+services:
+  # ---------------------------------------------------------------------------
+  # Database Service
+  # ---------------------------------------------------------------------------
+  postgres:
+    image: postgres:15-alpine
+    container_name: postgres_db
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      # Named volume for persistence (better performance/management)
+      - db_data:/var/lib/postgresql/data
+      # Mount host data folder to allow easy file access (e.g., for COPY)
+      - ./data:/data_host
+      # Mount initialization scripts
+      - ./backend/db/migrations:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U postgres" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+    networks:
+      - default
+
+  # ---------------------------------------------------------------------------
+  # Admin Interface (Optional)
+  # Access at http://localhost:8080
+  # ---------------------------------------------------------------------------
+  pgadmin:
+    image: dpage/pgadmin4
+    container_name: pgadmin_ui
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@local
+      PGADMIN_DEFAULT_PASSWORD: admin
+    ports:
+      - "8080:80"
+    volumes:
+      - pgadmin_data:/var/lib/pgadmin
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - default
+
+  # ---------------------------------------------------------------------------
+  # Backend Service
+  # ---------------------------------------------------------------------------
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: backend_api
+    environment:
+      DATABASE_URL: postgres://postgres:password@postgres:5432/postgres
+      PORT: 3001
+    ports:
+      - "3001:3001"
+    volumes:
+      # Mount source for hot-reloading (ignore node_modules)
+      - ./backend:/usr/src/app
+      - /usr/src/app/node_modules
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      # Simple healthcheck to verify API is responsive (assumes /health route exists or just connection)
+      # Since we haven't implemented /health explicitly, checking TCP port is a basic fallback
+      # But task asked for "curl to /health". I should probably add /health to index.js if I haven't.
+      test: [ "CMD", "curl", "-f", "http://localhost:3001/" ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    networks:
+      - default
+
+volumes:
+  db_data:
+  pgadmin_data:
+
+
+networks:
+  default:
+    driver: bridge

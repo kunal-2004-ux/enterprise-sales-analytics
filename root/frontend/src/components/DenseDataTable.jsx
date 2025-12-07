@@ -48,13 +48,17 @@ export default function DenseDataTable({ data = [], loading }) {
     const wrapperRef = useRef(null);
     const headerRef = useRef(null);
     const listOuterRef = useRef(null);
-    const [containerWidth, setContainerWidth] = useState(800);
+    const [dimensions, setDimensions] = useState({ width: 800, height: 400 });
 
     useEffect(() => {
         const el = wrapperRef.current;
         if (!el) return;
         const update = () => {
-            setContainerWidth(el.clientWidth || 800);
+            // Only track width, let height be determined by content
+            setDimensions(prev => ({
+                width: el.clientWidth || 800,
+                height: prev.height
+            }));
         };
         update();
         const ro = new ResizeObserver(update);
@@ -96,12 +100,12 @@ export default function DenseDataTable({ data = [], loading }) {
     };
 
     return (
-        <div className="dense-table-container" ref={wrapperRef} style={{ overflow: 'hidden' }}>
+        <div className="dense-table-container" ref={wrapperRef} style={{ overflow: 'hidden', position: 'relative', width: '100%' }}>
             {/* Header: Hidden overflow, scrolled via JS */}
             <div
                 className="table-header"
                 ref={headerRef}
-                style={{ width: containerWidth, overflow: 'hidden', minWidth: 'auto' }}
+                style={{ width: dimensions.width, overflow: 'hidden', minWidth: 'auto', height: '42px', flexShrink: 0 }}
             >
                 <div style={{ width: totalWidth, display: 'flex' }}>
                     {COLUMNS.map((col, idx) => (
@@ -112,16 +116,16 @@ export default function DenseDataTable({ data = [], loading }) {
                 </div>
             </div>
 
-            {/* Body: Auto overflow (scrolls X and Y) */}
-            <div className="table-body" style={{ width: containerWidth }}>
+            {/* Body: Auto overflow (scrolls X only now, Y is handled by page) */}
+            <div className="table-body" style={{ width: dimensions.width }}>
                 <List
-                    height={Math.min(600, (data.length || 0) * 40 + 20)}
+                    height={(data.length * 40) + 10} // Auto-height: rows * 40px + buffer. Simple and effective for < 50 items.
                     itemCount={data.length}
                     itemSize={40}
-                    width={containerWidth} // constrained to container
+                    width={dimensions.width}
                     itemData={data}
                     outerRef={listOuterRef}
-                    style={{ overflow: 'auto' }} // Ensure scrollbars
+                    style={{ overflowX: 'auto', overflowY: 'hidden' }} // Hide vertical scrollbar in list, rely on page scroll
                 >
                     {RowWrapper}
                 </List>

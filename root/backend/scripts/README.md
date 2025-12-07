@@ -1,42 +1,56 @@
-# Scripts for Data Processing (backend/scripts)
+# Bulk Data Ingestion Pipeline
 
-## csvToNdjson.js
-This script converts the CSV dataset to NDJSON (newline-delimited JSON) in a streaming, memory-efficient way.
+This directory contains scripts to safely ingest large CSV datasets (1M+ rows) into PostgreSQL.
 
-### Location
-`backend/scripts/csvToNdjson.js`
+## Overview
 
-### Input
-`prod_project/root/data/dataset.csv`
+The pipeline operates in three stages to ensure data integrity and low memory usage:
+1.  **Stream & Validate**: `dataset.csv` -> `csvToNdjson.js` -> `dataset.ndjson`
+    - Parses CSV row-by-row.
+    - Normalizes data types (numbers, dates).
+    - Validates required fields.
+2.  **Format for COPY**: `dataset.ndjson` -> `ndjson_to_copy_csv.js` -> `dataset_for_copy.csv`
+    - Flattens nested JSON objects to table columns.
+    - Formats arrays for Postgres (`{val1,val2}`).
+    - Applies strict CSV escaping.
+3.  **Import**: `dataset_for_copy.csv` -> `\copy` command -> Postgres Table
+    - Uses Postgres's native `COPY` for maximum speed.
 
-### Output
-`prod_project/root/data/dataset.ndjson` (one JSON object per line)
+## Prerequisites
 
-### Usage
-From the repository root (`prod_project/root`):
+- Node.js (v14+)
+- PostgreSQL Database
+- Input file placed at: `backend/data/dataset.csv`
+
+## Usage
+
+### 1. Run the Orchestrator
+This script runs the conversion steps and generates the import command. It does **not** execute the import automatically.
+
 ```bash
-cd backend
-npm install csv-parser
-node scripts/csvToNdjson.js
+# From backend root
+node scripts/ingest_orchestrator.js
 ```
 
-### Notes
+### 2. Run the Import (Manual)
+The orchestrator will output a `\copy` command. Open your PSQL shell and paste it.
 
-The script logs progress every 50,000 rows.
+Example:
+```sql
+\copy sales(transaction_id, date, ...) FROM '.../dataset_for_copy.csv' WITH (FORMAT csv, HEADER true, NULL '');
+```
 
-It skips rows missing required fields:
-- Transaction ID
-- Date
-- Customer ID
-- Customer Name
-- Final Amount
+### 3. Create Indexes
+After the data is loaded, recreate your indexes for query performance:
 
-NDJSON is recommended for very large datasets because it is streamable and append-friendly.
+```sql
+\i db/migrations/002_create_indexes.sql
+```
 
-### After conversion
+## Performance Tuning
+For 1M+ rows, consider setting these in your current session before running `\copy`:
 
-Verify the NDJSON line count:
-- Linux/mac: `wc -l data/dataset.ndjson`
-- Windows PowerShell: use `Get-Content` with caution for very large files (or use `Measure-Object -Line`).
-
-Convert NDJSON → CSV for fastest Postgres ingestion with COPY, or ingest via a streaming COPY approach.
+```sql
+SET maintenance_work_mem = '1GB';
+SET max_wal_size = '4GB';
+```
