@@ -1,4 +1,0 @@
-Transaction ID,Date,Customer ID,Customer Name,Phone Number,Gender,Age,Customer Region,Customer Type,Product ID,Product Name,Brand,Product Category,Tags,Quantity,Price per unit,Discount Percentage,Total Amount,final amount,Payment Method,Order Status,Delivery Type,Store ID,Store Location,Salesperson ID,Employee Name
-TX1,2024-01-01,C1,Alice,99999,Female,25,North,New,P1,Shoes,Nike,Fashion,"New,Featured",2,100,0,200,200,UPI,Completed,Home Delivery,S1,Delhi,SP1,Raj
-TX2,2024-01-02,C2,Rohan,88888,Male,31,South,Existing,P2,Laptop,Apple,Electronics,"Returned",1,900,10,900,810,Card,Returned,Home Delivery,S1,Delhi,SP2,Amit
-TX3,2024-01-02,C1,Alice,99999,Female,25,North,New,P3,Bag,Puma,Fashion,"Trending",1,150,5,150,142.5,Cash,Completed,Store Pickup,S2,Mumbai,SP3,Sara
