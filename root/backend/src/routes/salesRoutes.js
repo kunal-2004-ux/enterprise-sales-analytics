@@ -30,11 +30,11 @@ router.get('/filters', async (req, res, next) => {
 
         // Run distinct queries in parallel for performance
         const queries = {
-            region: "SELECT DISTINCT customer_region FROM sales WHERE customer_region IS NOT NULL ORDER BY customer_region",
-            gender: "SELECT DISTINCT gender FROM sales WHERE gender IS NOT NULL ORDER BY gender",
-            category: "SELECT DISTINCT category FROM sales WHERE category IS NOT NULL ORDER BY category",
-            payment: "SELECT DISTINCT payment_method FROM sales WHERE payment_method IS NOT NULL ORDER BY payment_method",
-            tags: "SELECT DISTINCT tag FROM (SELECT unnest(tags) as tag FROM sales) t WHERE tag IS NOT NULL ORDER BY tag"
+            region: "SELECT DISTINCT customer_region FROM sales WHERE customer_region IS NOT NULL ORDER BY customer_region LIMIT 100",
+            gender: "SELECT DISTINCT gender FROM sales WHERE gender IS NOT NULL ORDER BY gender LIMIT 100",
+            category: "SELECT DISTINCT category FROM sales WHERE category IS NOT NULL ORDER BY category LIMIT 100",
+            payment: "SELECT DISTINCT payment_method FROM sales WHERE payment_method IS NOT NULL ORDER BY payment_method LIMIT 100",
+            tags: "SELECT DISTINCT tag FROM (SELECT unnest(tags) as tag FROM sales) t WHERE tag IS NOT NULL ORDER BY tag LIMIT 100"
         };
 
         const promises = Object.entries(queries).map(async ([key, sql]) => {
