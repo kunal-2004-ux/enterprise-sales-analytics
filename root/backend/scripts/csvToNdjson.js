@@ -1,99 +1,108 @@
+/**
+ * scripts/csvToNdjson.js
+ *
+ * Streams a large CSV file, normalizes it using mapCsvRow, and outputs NDJSON.
+ * Usage: node scripts/csvToNdjson.js <input-csv> <output-ndjson>
+ */
+
 const fs = require('fs');
 const path = require('path');
 const csv = require('csv-parser');
+const { Transform } = require('stream');
 const { mapCsvRow } = require('../src/mappers/mapCsvRow');
 
-const INPUT_PATH = path.join(__dirname, '../../data/dataset.csv');
-const OUTPUT_PATH = path.join(__dirname, '../../data/dataset.ndjson');
+// Default paths if not provided
+const DEFAULT_INPUT = path.join(__dirname, '../../data/dataset.csv');
+const DEFAULT_OUTPUT = path.join(__dirname, '../../data/dataset.ndjson');
 
-function isValid(row) {
-    if (!row) return false;
-    return (
-        row.transaction_id &&
-        row.date &&
-        row.customer && row.customer.id && row.customer.name &&
-        row.final_amount !== null && row.final_amount !== undefined
-    );
+async function run(inputPath = DEFAULT_INPUT, outputPath = DEFAULT_OUTPUT) {
+    console.log(`[csvToNdjson] Starting conversion...`);
+    console.log(`   Input: ${inputPath}`);
+    console.log(`   Output: ${outputPath}`);
+
+    if (!fs.existsSync(inputPath)) {
+        console.error(`[csvToNdjson] Error: Input file not found at ${inputPath}`);
+        process.exit(1);
+    }
+
+    let processedCount = 0;
+    let successCount = 0;
+    let errorCount = 0;
+    let lastLog = Date.now();
+
+    // Transform stream to map and validate
+    const transformRow = new Transform({
+        objectMode: true,
+        transform(chunk, encoding, callback) {
+            processedCount++;
+
+            try {
+                // Normalize using existing mapper
+                const mapped = mapCsvRow(chunk);
+
+                // Validation: Ensure transaction_id exists
+                if (!mapped || !mapped.transaction_id) {
+                    errorCount++;
+                    // Skip invalid rows (silently or log verbose if needed)
+                    return callback();
+                }
+
+                successCount++;
+
+                // Convert to NDJSON string + newline
+                const ndjsonLine = JSON.stringify(mapped) + '\n';
+                this.push(ndjsonLine);
+            } catch (err) {
+                errorCount++;
+                console.error(`[csvToNdjson] Row error: ${err.message}`);
+            }
+
+            // Progress logging
+            if (processedCount % 50000 === 0) {
+                const now = Date.now();
+                const rate = 50000 / ((now - lastLog) / 1000);
+                console.log(`[csvToNdjson] Processed: ${processedCount.toLocaleString()} | Valid: ${successCount.toLocaleString()} | Errors: ${errorCount.toLocaleString()} | Rate: ~${Math.round(rate)} rows/s`);
+                lastLog = now;
+            }
+
+            callback();
+        }
+    });
+
+    return new Promise((resolve, reject) => {
+        const readStream = fs.createReadStream(inputPath);
+        const writeStream = fs.createWriteStream(outputPath);
+
+        readStream
+            .pipe(csv())
+            .pipe(transformRow)
+            .pipe(writeStream)
+            .on('finish', () => {
+                console.log(`[csvToNdjson] Completed.`);
+                console.log(`   Total Processed: ${processedCount.toLocaleString()}`);
+                console.log(`   Successfully Written: ${successCount.toLocaleString()}`);
+                console.log(`   Skipped/Errors: ${errorCount.toLocaleString()}`);
+                resolve();
+            })
+            .on('error', (err) => {
+                console.error('[csvToNdjson] Pipeline failed:', err);
+                reject(err);
+            });
+
+        writeStream.on('error', (err) => {
+            console.error('[csvToNdjson] Write failed:', err);
+            reject(err);
+        });
+    });
 }
 
-function run() {
-    console.log(`Starting CSV → NDJSON conversion`);
-    console.log(`Input : ${INPUT_PATH}`);
-    console.log(`Output: ${OUTPUT_PATH}`);
-
-    // Ensure output directory exists
-    const outDir = path.dirname(OUTPUT_PATH);
-    if (!fs.existsSync(outDir)) fs.mkdirSync(outDir, { recursive: true });
-
-    const writeStream = fs.createWriteStream(OUTPUT_PATH, { flags: 'w' });
-
-    let totalProcessed = 0;
-    let skippedCount = 0;
-    let paused = false;
-    const LOG_INTERVAL = 50000;
-
-    const readStream = fs.createReadStream(INPUT_PATH)
-        .on('error', (err) => {
-            console.error('Error opening input CSV:', err);
-            process.exit(1);
-        });
-
-    const parser = csv();
-
-    parser.on('data', (csvRow) => {
-        // Pause parser if write returns false (backpressure)
-        if (paused) return;
-
-        try {
-            const normalized = mapCsvRow(csvRow);
-            totalProcessed++;
-
-            if (isValid(normalized)) {
-                const line = JSON.stringify(normalized) + '\n';
-                const ok = writeStream.write(line);
-                if (!ok) {
-                    // Backpressure - pause the parser until drain
-                    paused = true;
-                    readStream.pause();
-                }
-            } else {
-                skippedCount++;
-            }
-
-            if (totalProcessed % LOG_INTERVAL === 0) {
-                console.log(`Processed ${totalProcessed} rows... (skipped ${skippedCount})`);
-            }
-        } catch (err) {
-            skippedCount++;
-            console.error('Error processing row at index', totalProcessed, err && err.message);
-        }
-    });
-
-    // When write stream drains, resume parser & source
-    writeStream.on('drain', () => {
-        if (paused) {
-            paused = false;
-            readStream.resume();
-        }
-    });
-
-    parser.on('end', () => {
-        // end is emitted after all csv rows are parsed
-        writeStream.end(() => {
-            console.log('Conversion complete.');
-            console.log(`Total Rows Processed: ${totalProcessed}`);
-            console.log(`Skipped Rows: ${skippedCount}`);
-            console.log(`Valid Rows Written: ${totalProcessed - skippedCount}`);
-        });
-    });
-
-    parser.on('error', (err) => {
-        console.error('CSV parser error:', err);
+// Allow standalone execution
+if (require.main === module) {
+    const args = process.argv.slice(2);
+    run(args[0], args[1]).catch(err => {
+        console.error(err);
         process.exit(1);
     });
-
-    // Pipe after wiring events
-    readStream.pipe(parser);
 }
 
-run();
+module.exports = { run };

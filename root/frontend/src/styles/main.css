@@ -1,0 +1,271 @@
+/* main.css - Figma Focused Theme */
+
+:root {
+  --bg-page: #f3f4f6;
+  /* Light gray outer */
+  --bg-card: #ffffff;
+  --text-primary: #111827;
+  --text-secondary: #6b7280;
+  --primary: #2563eb;
+  /* Blue */
+  --border: #e5e7eb;
+  --header-height: 60px;
+}
+
+body {
+  margin: 0;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  background-color: var(--bg-page);
+  color: var(--text-primary);
+  min-height: 100vh;
+  /* Removed overflow: hidden to allow full page scroll */
+}
+
+/* Layout */
+.dashboard-container {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  /* Allow growth */
+}
+
+.app-header {
+  height: var(--header-height);
+  background: var(--bg-card);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 24px;
+}
+
+.app-branding {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.app-logo {
+  font-weight: 800;
+  color: var(--primary);
+  font-size: 1.2rem;
+}
+
+.app-title {
+  font-size: 1rem;
+  font-weight: 500;
+  margin: 0;
+  color: var(--text-primary);
+}
+
+.user-avatar {
+  width: 32px;
+  height: 32px;
+  background: #e0e7ff;
+  color: var(--primary);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.main-content {
+  flex: 1;
+  padding: 24px;
+  overflow: hidden;
+  /* Changed from auto to hidden to force child flex columns to fill height */
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* Toolbar */
+.filter-toolbar {
+  background: var(--bg-card);
+  padding: 12px 16px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.filter-group-left,
+.filter-group-right,
+.filter-group-center {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.filter-group-center {
+  flex: 1;
+  justify-content: center;
+}
+
+.filter-toolbar select,
+.filter-toolbar input {
+  padding: 6px 12px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font-size: 0.85rem;
+  background: #f9fafb;
+  color: var(--text-primary);
+}
+
+.search-input {
+  width: 300px;
+  background: #fff !important;
+}
+
+button.btn-primary {
+  background: var(--primary);
+  color: white;
+  border: none;
+  padding: 6px 16px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.85rem;
+}
+
+button.btn-secondary {
+  background: white;
+  color: var(--text-primary);
+  border: 1px solid var(--border);
+  padding: 6px 16px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.85rem;
+}
+
+/* Metrics */
+.metric-widgets {
+  display: flex;
+  gap: 16px;
+}
+
+.widget-card {
+  flex: 1;
+  background: var(--bg-card);
+  padding: 16px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+}
+
+.widget-label {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  margin-bottom: 4px;
+}
+
+.widget-value {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.widget-caption {
+  font-size: 0.75rem;
+  color: #10b981;
+  /* Greenish */
+  margin-top: 4px;
+}
+
+/* Table */
+.table-section {
+  flex: 1;
+  background: var(--bg-card);
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  /* For virtualization */
+}
+
+.table-wrapper {
+  flex: 1;
+  overflow: hidden;
+  position: relative;
+  width: 100%;
+  /* Force full width */
+}
+
+.dense-table-container {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.table-header {
+  display: flex;
+  background: #f9fafb;
+  border-bottom: 1px solid var(--border);
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.header-cell {
+  padding: 12px 8px;
+  text-align: left;
+}
+
+.table-row {
+  display: flex;
+  align-items: center;
+  font-size: 0.85rem;
+  border-bottom: 1px solid #f3f4f6;
+}
+
+.table-row:hover {
+  background-color: #f9fafb;
+}
+
+.table-cell {
+  padding: 0 8px;
+  /* Vertical handled by line height in react-window */
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Footer */
+.pagination-footer {
+  padding: 12px 24px;
+  border-top: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--bg-card);
+}
+
+.pagination-info {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+}
+
+.pagination-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.btn-page {
+  background: none;
+  border: 1px solid var(--border);
+  padding: 4px 12px;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.btn-page:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
