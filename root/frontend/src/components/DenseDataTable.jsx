@@ -34,9 +34,9 @@ const Row = ({ index, style, data }) => {
     };
 
     return (
-        <div style={style} className={`table-row ${index % 2 === 0 ? 'even' : 'odd'}`}>
+        <div style={style} className={`table-row ${index % 2 === 0 ? 'even' : 'odd'}`} role="row">
             {COLUMNS.map((col, idx) => (
-                <div key={idx} className="table-cell" style={{ width: col.width, minWidth: col.width }}>
+                <div key={idx} className="table-cell" style={{ width: col.width, minWidth: col.width, flexGrow: 1 }}>
                     {getVal(col)}
                 </div>
             ))}
@@ -48,22 +48,42 @@ export default function DenseDataTable({ data = [], loading }) {
     const wrapperRef = useRef(null);
     const headerRef = useRef(null);
     const listOuterRef = useRef(null);
-    const [dimensions, setDimensions] = useState({ width: 800, height: 400 });
+    // Initialize with something wider than 800 if possible to avoid flash
+    const [dimensions, setDimensions] = useState({
+        width: typeof window !== 'undefined' ? (window.innerWidth - 48) : 800,
+        height: 400
+    });
 
     useEffect(() => {
         const el = wrapperRef.current;
         if (!el) return;
+
         const update = () => {
-            // Only track width, let height be determined by content
-            setDimensions(prev => ({
-                width: el.clientWidth || 800,
-                height: prev.height
-            }));
+            // getBoundingClientRect is often more reliable for "visual" width including padding
+            const rect = el.getBoundingClientRect();
+            if (rect.width && rect.width !== dimensions.width) {
+                setDimensions(prev => ({
+                    width: rect.width,
+                    height: prev.height // Height is driven by content mostly
+                }));
+            }
         };
+
+        // Initial measure
         update();
-        const ro = new ResizeObserver(update);
+        // Fallback: window resize (for safety)
+        window.addEventListener('resize', update);
+
+        const ro = new ResizeObserver(() => {
+            // Just call update() to measure properly
+            update();
+        });
         ro.observe(el);
-        return () => ro.disconnect();
+
+        return () => {
+            ro.disconnect();
+            window.removeEventListener('resize', update);
+        };
     }, []);
 
     // Sync header scroll with list scroll
@@ -81,8 +101,10 @@ export default function DenseDataTable({ data = [], loading }) {
         return () => listEl.removeEventListener('scroll', handleScroll);
     }, [loading, data]); // Re-attach if list remounts
 
-    // total width of columns
+    // total width of columns (minimum)
     const totalWidth = COLUMNS.reduce((s, c) => s + c.width, 0);
+    // effective width (matches screen if screen is larger)
+    const effectiveWidth = Math.max(totalWidth, dimensions.width);
 
     if (!loading && (!data || data.length === 0)) {
         return <div className="no-records">No records found.</div>;
@@ -90,10 +112,9 @@ export default function DenseDataTable({ data = [], loading }) {
 
     // Row wrapper to force width
     const RowWrapper = ({ index, style, data }) => {
-        // Force the row width to match total column width, enabling horizontal scroll in List
         const rowStyle = {
             ...style,
-            width: totalWidth,
+            width: effectiveWidth,
             minWidth: totalWidth
         };
         return <Row index={index} style={rowStyle} data={data} />;
@@ -107,9 +128,9 @@ export default function DenseDataTable({ data = [], loading }) {
                 ref={headerRef}
                 style={{ width: dimensions.width, overflow: 'hidden', minWidth: 'auto', height: '42px', flexShrink: 0 }}
             >
-                <div style={{ width: totalWidth, display: 'flex' }}>
+                <div style={{ width: effectiveWidth, display: 'flex' }}>
                     {COLUMNS.map((col, idx) => (
-                        <div key={idx} className="header-cell" style={{ width: col.width, minWidth: col.width }}>
+                        <div key={idx} className="header-cell" style={{ width: col.width, minWidth: col.width, flexGrow: 1 }}>
                             {col.label}
                         </div>
                     ))}
@@ -119,13 +140,13 @@ export default function DenseDataTable({ data = [], loading }) {
             {/* Body: Auto overflow (scrolls X only now, Y is handled by page) */}
             <div className="table-body" style={{ width: dimensions.width }}>
                 <List
-                    height={(data.length * 40) + 10} // Auto-height: rows * 40px + buffer. Simple and effective for < 50 items.
+                    height={(data.length * 40) + 10} // Auto-height
                     itemCount={data.length}
                     itemSize={40}
                     width={dimensions.width}
                     itemData={data}
                     outerRef={listOuterRef}
-                    style={{ overflowX: 'auto', overflowY: 'hidden' }} // Hide vertical scrollbar in list, rely on page scroll
+                    style={{ overflowX: 'auto', overflowY: 'hidden' }} // Hide vertical scrollbar in list
                 >
                     {RowWrapper}
                 </List>

@@ -89,7 +89,7 @@ async function querySales(pool, params) {
     if (!useKeyset && page) {
         // OFFSET fallback
         const offset = (page - 1) * limit;
-        sql = `SELECT * FROM sales ${finalWhereSql} ${orderSql} LIMIT ${limit} OFFSET ${offset}`;
+        sql = `SELECT * FROM sales ${finalWhereSql} ${orderSql} LIMIT ${limitPlaceholder} OFFSET ${offset}`;
         const res = await pool.query(sql, finalValues);
         rows = res.rows;
         meta.page = page;

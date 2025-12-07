@@ -1,62 +1,69 @@
 import React from 'react';
 
-export default function PaginationControls({ meta = {}, onNextCursor, onPrevCursor, onPageChange }) {
-    const { cursor, page, total_items, limit = 10, warning, prevExists } = meta;
+export default function PaginationControls({ meta = {}, onPageChange }) {
+    const { page = 1, total_items, limit = 10 } = meta;
 
-    // Render warning if mixed mode
-    const renderWarning = warning ? <div style={{ fontSize: '0.8rem', color: 'orange', marginRight: '10px' }}>{warning}</div> : null;
+    if (typeof total_items !== 'number') return null;
 
-    if (cursor || prevExists) {
-        return (
-            <div className="pagination-controls">
-                {renderWarning}
-                <span style={{ fontSize: '0.9rem', color: '#666', marginRight: 'auto' }}>
-                    Keyset Pagination (Optimized)
-                </span>
+    const totalPages = Math.ceil(total_items / limit);
+    if (totalPages <= 1) return null;
+
+    // Helper to generate page numbers to show
+    const getPageNumbers = () => {
+        const pages = [];
+        const maxButtons = 5; // Max page buttons to show
+        let startPage = Math.max(1, page - 2);
+        let endPage = Math.min(totalPages, startPage + maxButtons - 1);
+
+        if (endPage - startPage < maxButtons - 1) {
+            startPage = Math.max(1, endPage - maxButtons + 1);
+        }
+
+        for (let i = startPage; i <= endPage; i++) {
+            pages.push(i);
+        }
+        return pages;
+    };
+
+    return (
+        <div className="pagination-controls" style={{ display: 'flex', gap: '8px', justifyContent: 'center', alignItems: 'center', marginTop: '16px' }}>
+            <button
+                className="btn-page"
+                disabled={page <= 1}
+                onClick={() => onPageChange(page - 1)}
+            >
+                &larr; Prev
+            </button>
+
+            {getPageNumbers().map(p => (
                 <button
-                    className="btn-page"
-                    onClick={onPrevCursor}
-                    disabled={!prevExists}
+                    key={p}
+                    className={`btn-page ${p === page ? 'active' : ''}`}
+                    onClick={() => onPageChange(p)}
+                    style={{
+                        padding: '6px 12px',
+                        backgroundColor: p === page ? '#007bff' : '#f0f0f0',
+                        color: p === page ? '#fff' : '#333',
+                        border: '1px solid #ddd',
+                        borderRadius: '4px',
+                        cursor: 'pointer'
+                    }}
                 >
-                    &larr; Prev
+                    {p}
                 </button>
-                <button
-                    className="btn-page"
-                    onClick={onNextCursor}
-                    disabled={!cursor} // Next is disabled if no cursor returned (end of list)
-                >
-                    Next Page &rarr;
-                </button>
-            </div>
-        );
-    }
+            ))}
 
-    if (page) {
-        // Only show if page is set (offset mode)
-        const hasNext = typeof total_items === 'number' ? (page * limit < total_items) : true;
+            <button
+                className="btn-page"
+                disabled={page >= totalPages}
+                onClick={() => onPageChange(page + 1)}
+            >
+                Next &rarr;
+            </button>
 
-        return (
-            <div className="pagination-controls">
-                {renderWarning}
-                <button
-                    className="btn-page"
-                    disabled={page <= 1}
-                    onClick={() => onPageChange(page - 1)}
-                >
-                    &larr; Prev
-                </button>
-                <span style={{ fontWeight: 500 }}>Page {page}</span>
-                <button
-                    className="btn-page"
-                    disabled={!hasNext}
-                    onClick={() => onPageChange(page + 1)}
-                >
-                    Next &rarr;
-                </button>
-            </div>
-        );
-    }
-
-    // Default / Empty
-    return null;
+            <span style={{ marginLeft: '10px', fontSize: '0.9rem', color: '#666' }}>
+                Total: {totalPages} pages
+            </span>
+        </div>
+    );
 }

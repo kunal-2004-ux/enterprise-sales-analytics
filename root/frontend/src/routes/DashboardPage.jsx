@@ -8,7 +8,7 @@ import PaginationFooter from '../components/PaginationFooter';
 export default function DashboardPage() {
     const {
         data, meta, loading, error, params,
-        updateFilters, resetFilters, goNextCursor, goPrevCursor
+        updateFilters, resetFilters, goPage
     } = useSalesData();
 
     return (
@@ -48,8 +48,7 @@ export default function DashboardPage() {
                     {/* 4. Footer */}
                     <PaginationFooter
                         meta={meta}
-                        onNext={goNextCursor}
-                        onPrev={goPrevCursor}
+                        onPageChange={goPage}
                     />
                 </section>
             </main>
