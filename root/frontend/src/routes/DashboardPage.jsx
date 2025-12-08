@@ -7,51 +7,44 @@ import PaginationFooter from '../components/PaginationFooter';
 
 export default function DashboardPage() {
     const {
-        data, meta, loading, error, params,
-        updateFilters, resetFilters, goPage
+        data,
+        meta,
+        loading,
+        params, // Contains current filters
+        updateFilters,
+        resetFilters,
+        goPage
     } = useSalesData();
 
     return (
         <div className="dashboard-container">
-            {/* Top Header */}
             <header className="app-header">
                 <div className="app-branding">
-                    <div className="app-logo">SalesAI</div>
-                    <h1 className="app-title">Sales Management System</h1>
-                </div>
-                <div className="header-actions">
-                    {/* Placeholder for user profile or settings */}
+                    <div className="app-title">Enterprise Analytics Dashboard</div>
                 </div>
             </header>
 
-            {/* Main Content Area */}
-            <main className="main-content">
+            <div className="main-content">
+                <FilterToolbar
+                    currentFilters={params}
+                    onApply={updateFilters}
+                    onReset={resetFilters}
+                />
 
-                {/* 1. Filter Toolbar */}
-                <section className="toolbar-section">
-                    <FilterToolbar onApply={updateFilters} onReset={resetFilters} />
-                </section>
+                {/* Metrics derived from current view */}
+                <MetricWidgets data={data} />
 
-                {/* 2. Metrics */}
-                <section className="metrics-section">
-                    <MetricWidgets data={data} meta={meta} />
-                </section>
-
-                {/* 3. Data Table */}
-                <section className="table-section">
-                    {error && <div className="error-banner">{error}</div>}
-
+                <div className="table-section">
                     <div className="table-wrapper">
                         <DenseDataTable data={data} loading={loading} />
                     </div>
+                </div>
 
-                    {/* 4. Footer */}
-                    <PaginationFooter
-                        meta={meta}
-                        onPageChange={goPage}
-                    />
-                </section>
-            </main>
+                <PaginationFooter
+                    meta={meta}
+                    onPageChange={goPage}
+                />
+            </div>
         </div>
     );
 }

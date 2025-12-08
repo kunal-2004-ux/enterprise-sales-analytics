@@ -14,3 +14,7 @@ data/*.ndjson
 **/node_modules/
 dist/
 coverage/
+
+data/
+docker/
+docs/deployment.md

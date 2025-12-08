@@ -4,8 +4,7 @@
     "main": "src/index.js",
     "scripts": {
         "start": "node src/index.js",
-        "test": "jest",
-        "convert-data": "node scripts/csvToNdjson.js"
+        "test": "jest"
     },
     "dependencies": {
         "csv-parser": "^3.0.0",
